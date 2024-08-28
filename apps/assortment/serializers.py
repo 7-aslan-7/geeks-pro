@@ -10,22 +10,26 @@ class ProductSerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'price', 'image', 'created_at']
 
 class RegisterSerializer(serializers.ModelSerializer):
-    password1 = serializers.CharField(write_only=True, required=True, validators=[validate_password])
+    username = serializers.CharField(
+        required=True,
+        validators=[UniqueValidator(queryset=User.objects.all(), message="Это имя пользователя уже занято")]
+    )
+    password = serializers.CharField(write_only=True, required=True, validators=[validate_password])
     password2 = serializers.CharField(write_only=True, required=True)
 
     class Meta:
         model = User
-        fields = ('username', 'password1', 'password2')
+        fields = ['username', 'password', 'password2']
 
     def validate(self, attrs):
-        if attrs['password1'] != attrs['password2']:
-            raise serializers.ValidationError({"password": "Пароли не совпадают."})
+        if attrs['password'] != attrs['password2']:
+            raise serializers.ValidationError({"password2": "Пароли не совпадают"})
         return attrs
 
     def create(self, validated_data):
         user = User.objects.create(
             username=validated_data['username']
         )
-        user.set_password(validated_data['password1'])
+        user.set_password(validated_data['password'])
         user.save()
         return user
